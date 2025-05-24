@@ -7,11 +7,10 @@ from sklearn.metrics import accuracy_score
 
 st.title("Football Match Predictor")
 
-# Load example dataset
+# Load dataset locally
 @st.cache_data
 def load_data():
-    url = 'https://raw.githubusercontent.com/datasets/football-datasets/main/datasets/english-premier-league/2023-2024.csv'
-    df = pd.read_csv(url)
+    df = pd.read_csv('premier_league.csv')
     df = df.dropna(subset=['FTHG', 'FTAG'])
     df['result'] = df.apply(lambda row: 'H' if row['FTHG'] > row['FTAG'] else ('A' if row['FTAG'] > row['FTHG'] else 'D'), axis=1)
     return df
