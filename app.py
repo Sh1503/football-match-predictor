@@ -1,36 +1,56 @@
 
 import streamlit as st
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
-st.title("Football Match Predictor")
+st.set_page_config(page_title="Football Predictor", layout="centered")
+st.title("⚽ Football Match Predictor")
 
-# Load dataset locally
+# --- Load Data ---
 @st.cache_data
-def load_data():
-    df = pd.read_csv('premier_league.csv')
-    df = df.dropna(subset=['FTHG', 'FTAG'])
-    df['result'] = df.apply(lambda row: 'H' if row['FTHG'] > row['FTAG'] else ('A' if row['FTAG'] > row['FTHG'] else 'D'), axis=1)
-    return df
+def load_league_data():
+    leagues = {
+        "Premier League": "epl.csv",
+        "La Liga": "laliga.csv",
+        "Serie A": "seriea.csv",
+        "Bundesliga": "bundesliga.csv",
+        "Ligue 1": "ligue1.csv"
+    }
+    data = {}
+    for league, file in leagues.items():
+        df = pd.read_csv(file)
+        df = df.dropna(subset=['FTHG', 'FTAG'])
+        data[league] = df
+    return data
 
-df = load_data()
-X = df[['FTHG', 'FTAG']]
-X.columns = ['home_goals', 'away_goals']
-y = df['result']
+data = load_league_data()
+league = st.selectbox("Select a League", list(data.keys()))
+df = data[league]
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+teams = sorted(set(df['HomeTeam']).union(df['AwayTeam']))
+home_team = st.selectbox("Select Home Team", teams)
+away_team = st.selectbox("Select Away Team", [t for t in teams if t != home_team])
 
-st.subheader("Enter Match Details:")
-home_goals = st.number_input("Home Team Goals", min_value=0, max_value=10, value=1)
-away_goals = st.number_input("Away Team Goals", min_value=0, max_value=10, value=1)
+# --- Compute averages ---
+def get_team_avg(df, team, is_home):
+    if is_home:
+        matches = df[df['HomeTeam'] == team]
+        return matches['FTHG'].mean()
+    else:
+        matches = df[df['AwayTeam'] == team]
+        return matches['FTAG'].mean()
+
+home_avg = get_team_avg(df, home_team, is_home=True)
+away_avg = get_team_avg(df, away_team, is_home=False)
 
 if st.button("Predict Outcome"):
-    pred = model.predict([[home_goals, away_goals]])[0]
-    outcome = {'H': '🏠 Home Win', 'D': '🤝 Draw', 'A': '🚗 Away Win'}[pred]
-    st.success(f"Predicted Outcome: {outcome}")
+    st.markdown(f"📊 **{home_team} home avg goals:** {home_avg:.2f}")
+    st.markdown(f"📊 **{away_team} away avg goals:** {away_avg:.2f}")
 
-st.markdown(f"Model Accuracy: {accuracy_score(y_test, model.predict(X_test)) * 100:.2f}%")
+    if abs(home_avg - away_avg) < 0.2:
+        prediction = "🤝 Draw"
+    elif home_avg > away_avg:
+        prediction = f"🏠 {home_team} likely to win"
+    else:
+        prediction = f"🚗 {away_team} likely to win"
+
+    st.success(f"🔮 Prediction: {prediction}")
