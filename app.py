@@ -1,11 +1,44 @@
-
 import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Football Predictor", layout="centered")
 st.title("⚽ Football Match Predictor")
 
-# --- Load Data ---
+# --- קבוצות קבועות לכל ליגה ---
+LEAGUE_TEAMS = {
+    "Premier League": [
+        "Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton",
+        "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham",
+        "Liverpool", "Luton", "Manchester City", "Manchester United",
+        "Newcastle", "Nottingham Forest", "Sheffield United", "Tottenham",
+        "West Ham", "Wolves"
+    ],
+    "La Liga": [
+        "Alavés", "Almería", "Athletic Club", "Atlético Madrid", "Barcelona",
+        "Cádiz", "Celta Vigo", "Getafe", "Girona", "Granada", "Las Palmas",
+        "Mallorca", "Osasuna", "Rayo Vallecano", "Real Betis", "Real Madrid",
+        "Real Sociedad", "Sevilla", "Valencia", "Villarreal"
+    ],
+    "Serie A": [
+        "Atalanta", "Bologna", "Cagliari", "Empoli", "Fiorentina", "Frosinone",
+        "Genoa", "Hellas Verona", "Inter", "Juventus", "Lazio", "Lecce",
+        "Milan", "Monza", "Napoli", "Roma", "Salernitana", "Sassuolo",
+        "Torino", "Udinese"
+    ],
+    "Bundesliga": [
+        "Augsburg", "Bayer Leverkusen", "Bayern Munich", "Bochum", "Borussia Dortmund",
+        "Borussia M'gladbach", "Darmstadt", "Eintracht Frankfurt", "Freiburg",
+        "Heidenheim", "Hoffenheim", "Mainz", "RB Leipzig", "Stuttgart",
+        "Union Berlin", "Werder Bremen", "Wolfsburg", "Köln"
+    ],
+    "Ligue 1": [
+        "Brest", "Clermont", "Le Havre", "Lens", "Lille", "Lorient",
+        "Lyon", "Marseille", "Metz", "Monaco", "Montpellier", "Nantes",
+        "Nice", "Paris SG", "Reims", "Rennes", "Strasbourg", "Toulouse"
+    ]
+}
+
+# --- טעינת נתוני משחקים ---
 @st.cache_data
 def load_league_data():
     leagues = {
@@ -23,14 +56,15 @@ def load_league_data():
     return data
 
 data = load_league_data()
+
 league = st.selectbox("Select a League", list(data.keys()))
 df = data[league]
+teams = sorted(LEAGUE_TEAMS[league])
 
-teams = sorted(set(df['HomeTeam']).union(df['AwayTeam']))
 home_team = st.selectbox("Select Home Team", teams)
 away_team = st.selectbox("Select Away Team", [t for t in teams if t != home_team])
 
-# --- Compute averages ---
+# --- חישוב ממוצעים ---
 def get_team_avg(df, team, is_home):
     if is_home:
         matches = df[df['HomeTeam'] == team]
