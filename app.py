@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from scipy.stats import poisson
+import requests
+from io import StringIO
 
 # הגדרות דף
 st.set_page_config(
@@ -46,66 +48,67 @@ LEAGUE_TEAMS = {
 }
 
 # ----------------------------
-# טעינת נתונים
+# טעינת נתונים אוטומטית מ-GitHub
 # ----------------------------
-@st.cache_data
+def load_github_data(github_raw_url):
+    try:
+        response = requests.get(github_raw_url)
+        response.raise_for_status()
+        return pd.read_csv(StringIO(response.text))
+    except Exception as e:
+        st.error(f"שגיאה בטעינת נתונים: {str(e)}")
+        return None
+
+@st.cache_data(ttl=3600)  # רענון נתונים כל שעה
 def load_league_data():
-    return {
-        "Premier League": pd.read_csv("epl.csv"),
-        "La Liga": pd.read_csv("laliga.csv"),
-        "Serie A": pd.read_csv("seriea.csv"),
-        "Bundesliga": pd.read_csv("bundesliga.csv"),
-        "Ligue 1": pd.read_csv("ligue1.csv")
+    data_sources = {
+        "Premier League": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/epl.csv",
+        "La Liga": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/laliga.csv",
+        "Serie A": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/seriea.csv",
+        "Bundesliga": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/bundesliga.csv",
+        "Ligue 1": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/ligue1.csv"
     }
+    
+    league_data = {}
+    for league, url in data_sources.items():
+        df = load_github_data(url)
+        if df is not None:
+            league_data[league] = df
+    return league_data
 
 # ----------------------------
-# חיזוי תוצאות
+# פונקציות חיזוי
 # ----------------------------
 def predict_match(home_team, away_team, df):
     # חישוב ממוצעי שערים
-    home_avg = df[df['HomeTeam'] == home_team]['FTHG'].mean()
-    away_avg = df[df['AwayTeam'] == away_team]['FTAG'].mean()
+    home_goals = df[df['HomeTeam'] == home_team]['FTHG'].mean()
+    away_goals = df[df['AwayTeam'] == away_team]['FTAG'].mean()
     
-    # חישוב הסתברויות עם התפלגות פואסון
+    # חישוב הסתברויות פואסון
     max_goals = 5
     home_win = draw = away_win = 0.0
     
-    for i in range(max_goals + 1):
-        for j in range(max_goals + 1):
-            p = poisson.pmf(i, home_avg) * poisson.pmf(j, away_avg)
-            if i > j:
-                home_win += p
-            elif i == j:
-                draw += p
-            else:
-                away_win += p
+    for i in range(max_goals+1):
+        for j in range(max_goals+1):
+            p = poisson.pmf(i, home_goals) * poisson.pmf(j, away_goals)
+            if i > j: home_win += p
+            elif i == j: draw += p
+            else: away_win += p
     
     return {
         "home_win": round(home_win, 3),
         "draw": round(draw, 3),
-        "away_win": round(away_win, 3)
+        "away_win": round(away_win, 3),
+        "total_goals": round(home_goals + away_goals, 1),
+        "total_corners": get_corners_prediction(home_team, away_team, df)
     }
 
-# ----------------------------
-# בדיקת ביצועי המודל
-# ----------------------------
-def backtest_strategy(df, confidence=0.6):
-    correct = total = 0
-    for _, row in df.iterrows():
-        try:
-            pred = predict_match(row['HomeTeam'], row['AwayTeam'], df)
-            actual = row['FTR']
-            
-            if pred['home_win'] > confidence and actual == 'H':
-                correct += 1
-                total += 1
-            elif pred['away_win'] > confidence and actual == 'A':
-                correct += 1
-                total += 1
-        except:
-            continue
-    
-    return correct, total, round((correct / total) * 100, 2) if total > 0 else 0
+def get_corners_prediction(home_team, away_team, df):
+    if 'HC' in df.columns and 'AC' in df.columns:
+        home_corners = df[df['HomeTeam'] == home_team]['HC'].mean()
+        away_corners = df[df['AwayTeam'] == away_team]['AC'].mean()
+        return round(home_corners + away_corners, 1)
+    return None
 
 # ----------------------------
 # ממשק משתמש
@@ -113,7 +116,7 @@ def backtest_strategy(df, confidence=0.6):
 data = load_league_data()
 selected_league = st.selectbox("בחר ליגה", options=list(LEAGUE_TEAMS.keys()))
 
-if selected_league:
+if selected_league in data and not data[selected_league].empty:
     teams = LEAGUE_TEAMS[selected_league]
     col1, col2 = st.columns(2)
     
@@ -124,20 +127,20 @@ if selected_league:
         away_team = st.selectbox("קבוצה אורחת", options=[t for t in teams if t != home_team])
     
     if st.button("חשב חיזוי ⚡"):
-        try:
-            prediction = predict_match(home_team, away_team, data[selected_league])
-            st.subheader("תוצאות החיזוי:")
-            st.metric(label=f"ניצחון ל־{home_team}", value=f"{prediction['home_win']*100:.1f}%")
-            st.metric(label="תיקו", value=f"{prediction['draw']*100:.1f}%")
-            st.metric(label=f"ניצחון ל־{away_team}", value=f"{prediction['away_win']*100:.1f}%")
-        except Exception as e:
-            st.error(f"שגיאה: {str(e)}")
-    
-    st.divider()
-    st.subheader("בדיקת דיוק המודל")
-    confidence = st.slider("רף ביטחון (%)", 50, 90, 60, help="המודל יחשב רק ניחושים עם הסתברות מעל ערך זה")
-    
-    if st.button("הרץ בדיקה"):
-        correct, total, acc = backtest_strategy(data[selected_league], confidence/100)
-        st.write(f"**ניחושים נכונים:** {correct} מתוך {total}")
-        st.write(f"**דיוק:** {acc}%")
+        prediction = predict_match(home_team, away_team, data[selected_league])
+        
+        st.subheader("🔮 תוצאות חיזוי:")
+        st.metric(label=f"ניצחון ל־{home_team}", value=f"{prediction['home_win']*100:.1f}%")
+        st.metric(label="תיקו", value=f"{prediction['draw']*100:.1f}%")
+        st.metric(label=f"ניצחון ל־{away_team}", value=f"{prediction['away_win']*100:.1f}%")
+        
+        st.divider()
+        
+        st.subheader("📊 סטטיסטיקות נוספות")
+        st.write(f"שערים צפויים: **{prediction['total_goals']}**")
+        if prediction['total_corners'] is not None:
+            st.write(f"קרנות צפויות: **{prediction['total_corners']}**")
+        else:
+            st.warning("אין נתוני קרנות זמינים עבור ליגה זו")
+else:
+    st.error("לא נמצאו נתונים עבור הליגה הנבחרת")
