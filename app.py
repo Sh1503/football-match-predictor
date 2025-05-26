@@ -11,35 +11,115 @@ st.title("⚽ Football Match Predictor Pro")
 # קבועים: קבוצות לפי ליגה
 # ----------------------------
 LEAGUE_TEAMS = {
-    "Premier League": [
-        "Arsenal", "Aston Villa", "Bournemouth", "Brentford", "Brighton & Hove Albion",
-        "Burnley", "Chelsea", "Crystal Palace", "Everton", "Fulham",
-        "Leeds United", "Liverpool", "Manchester City", "Manchester United", "Newcastle United",
-        "Nottingham Forest", "Sunderland", "Tottenham", "West Ham", "Wolverhampton"
+    'Bundesliga': [
+        'Augsburg',
+        'Bayern Munich',
+        'Bochum',
+        'Dortmund',
+        'Ein Frankfurt',
+        'Freiburg',
+        'Heidenheim',
+        'Hoffenheim',
+        'Holstein Kiel',
+        'Leverkusen',
+        "M'gladbach",
+        'Mainz',
+        'RB Leipzig',
+        'St Pauli',
+        'Stuttgart',
+        'Union Berlin',
+        'Werder Bremen',
+        'Wolfsburg'
     ],
-    "La Liga": [
-        "Alaves", "Almeria", "Athletic Club", "Atletico Madrid", "Barcelona",
-        "Betis", "Celta Vigo", "Getafe", "Girona", "Granada",
-        "Las Palmas", "Leganes", "Mallorca", "Osasuna", "Rayo Vallecano",
-        "Real Madrid", "Real Sociedad", "Sevilla", "Valencia", "Villarreal"
+    'Premier League': [
+        'Arsenal',
+        'Aston Villa',
+        'Bournemouth',
+        'Brentford',
+        'Brighton',
+        'Chelsea',
+        'Crystal Palace',
+        'Everton',
+        'Fulham',
+        'Ipswich',
+        'Leicester',
+        'Liverpool',
+        'Man City',
+        'Man United',
+        'Newcastle',
+        "Nott'm Forest",
+        'Southampton',
+        'Tottenham',
+        'West Ham',
+        'Wolves'
     ],
-    "Serie A": [
-        "Atalanta", "Bologna", "Cagliari", "Como", "Fiorentina",
-        "Genoa", "Hellas Verona", "Internazionale", "Juventus", "Lazio",
-        "Lecce", "AC Milan", "Napoli", "Parma", "Pisa",
-        "Roma", "Sassuolo", "Torino", "Udinese", "Empoli"
+    'La Liga': [
+        'Alaves',
+        'Ath Bilbao',
+        'Ath Madrid',
+        'Barcelona',
+        'Betis',
+        'Celta',
+        'Espanol',
+        'Getafe',
+        'Girona',
+        'Las Palmas',
+        'Leganes',
+        'Mallorca',
+        'Osasuna',
+        'Real Madrid',
+        'Sevilla',
+        'Sociedad',
+        'Valencia',
+        'Valladolid',
+        'Vallecano',
+        'Villarreal'
     ],
-    "Bundesliga": [
-        "FC Augsburg", "Union Berlin", "Werder Bremen", "Borussia Dortmund", "Eintracht Frankfurt",
-        "SC Freiburg", "Hamburger SV", "TSG Hoffenheim", "1. FC Köln", "RB Leipzig",
-        "Bayer Leverkusen", "Mainz 05", "Borussia Mönchengladbach", "Bayern Munich", "FC St. Pauli",
-        "VfB Stuttgart", "VfL Wolfsburg", "Hertha BSC"
+    'Ligue 1': [
+        'Angers',
+        'Auxerre',
+        'Brest',
+        'Le Havre',
+        'Lens',
+        'Lille',
+        'Lyon',
+        'Marseille',
+        'Monaco',
+        'Montpellier',
+        'Nantes',
+        'Nice',
+        'Paris SG',
+        'Reims',
+        'Rennes',
+        'St Etienne',
+        'Strasbourg',
+        'Toulouse'
     ],
-    "Ligue 1": [
-        "Paris Saint-Germain", "Olympique de Marseille", "Lille", "Monaco", "Lyon",
-        "Nice", "Strasbourg", "Lens", "Brest", "Auxerre",
-        "Rennes", "Toulouse", "Reims", "Nantes", "Angers",
-        "Le Havre", "Saint-Étienne", "Montpellier", "Metz", "Clermont"
+    'Serie A': [
+        'Atalanta',
+        'Bologna',
+        'Cagliari',
+        'Como',
+        'Empoli',
+        'Fiorentina',
+        'Genoa',
+        'Inter',
+        'Juventus',
+        'Lazio',
+        'Lecce',
+        'Milan',
+        'Monza',
+        'Napoli',
+        'Parma',
+        'Roma',
+        'Torino',
+        'Udinese',
+        'Venezia',
+        'Verona'
+    ]
+}
+
+
     ]
 }
 
