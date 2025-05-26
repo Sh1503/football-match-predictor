@@ -2,231 +2,142 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from scipy.stats import poisson
-from datetime import datetime
 
-st.set_page_config(page_title="Football Predictor Pro", layout="centered", page_icon="⚽")
+# הגדרות דף
+st.set_page_config(
+    page_title="Football Predictor Pro",
+    page_icon="⚽",
+    layout="centered"
+)
 st.title("⚽ Football Match Predictor Pro")
 
 # ----------------------------
-# קבועים: קבוצות לפי ליגה
+# קבוצות לפי ליגה (מותאם לקבצי ה-CSV שלך)
 # ----------------------------
 LEAGUE_TEAMS = {
     'Bundesliga': [
-        'Augsburg',
-        'Bayern Munich',
-        'Bochum',
-        'Dortmund',
-        'Ein Frankfurt',
-        'Freiburg',
-        'Heidenheim',
-        'Hoffenheim',
-        'Holstein Kiel',
-        'Leverkusen',
-        "M'gladbach",
-        'Mainz',
-        'RB Leipzig',
-        'St Pauli',
-        'Stuttgart',
-        'Union Berlin',
-        'Werder Bremen',
-        'Wolfsburg'
+        'Augsburg', 'Bayern Munich', 'Bochum', 'Dortmund', 'Ein Frankfurt',
+        'Freiburg', 'Heidenheim', 'Hoffenheim', 'Holstein Kiel', 'Leverkusen',
+        "M'gladbach", 'Mainz', 'RB Leipzig', 'St Pauli', 'Stuttgart',
+        'Union Berlin', 'Werder Bremen', 'Wolfsburg'
     ],
     'Premier League': [
-        'Arsenal',
-        'Aston Villa',
-        'Bournemouth',
-        'Brentford',
-        'Brighton',
-        'Chelsea',
-        'Crystal Palace',
-        'Everton',
-        'Fulham',
-        'Ipswich',
-        'Leicester',
-        'Liverpool',
-        'Man City',
-        'Man United',
-        'Newcastle',
-        "Nott'm Forest",
-        'Southampton',
-        'Tottenham',
-        'West Ham',
-        'Wolves'
+        'Arsenal', 'Aston Villa', 'Bournemouth', 'Brentford', 'Brighton',
+        'Chelsea', 'Crystal Palace', 'Everton', 'Fulham', 'Ipswich',
+        'Leicester', 'Liverpool', 'Man City', 'Man United', 'Newcastle',
+        "Nott'm Forest", 'Southampton', 'Tottenham', 'West Ham', 'Wolves'
     ],
     'La Liga': [
-        'Alaves',
-        'Ath Bilbao',
-        'Ath Madrid',
-        'Barcelona',
-        'Betis',
-        'Celta',
-        'Espanol',
-        'Getafe',
-        'Girona',
-        'Las Palmas',
-        'Leganes',
-        'Mallorca',
-        'Osasuna',
-        'Real Madrid',
-        'Sevilla',
-        'Sociedad',
-        'Valencia',
-        'Valladolid',
-        'Vallecano',
-        'Villarreal'
+        'Alaves', 'Ath Bilbao', 'Ath Madrid', 'Barcelona', 'Betis', 'Celta',
+        'Espanol', 'Getafe', 'Girona', 'Las Palmas', 'Leganes', 'Mallorca',
+        'Osasuna', 'Real Madrid', 'Sevilla', 'Sociedad', 'Valencia',
+        'Valladolid', 'Vallecano', 'Villarreal'
     ],
     'Ligue 1': [
-        'Angers',
-        'Auxerre',
-        'Brest',
-        'Le Havre',
-        'Lens',
-        'Lille',
-        'Lyon',
-        'Marseille',
-        'Monaco',
-        'Montpellier',
-        'Nantes',
-        'Nice',
-        'Paris SG',
-        'Reims',
-        'Rennes',
-        'St Etienne',
-        'Strasbourg',
-        'Toulouse'
+        'Angers', 'Auxerre', 'Brest', 'Le Havre', 'Lens', 'Lille', 'Lyon',
+        'Marseille', 'Monaco', 'Montpellier', 'Nantes', 'Nice', 'Paris SG',
+        'Reims', 'Rennes', 'St Etienne', 'Strasbourg', 'Toulouse'
     ],
     'Serie A': [
-        'Atalanta',
-        'Bologna',
-        'Cagliari',
-        'Como',
-        'Empoli',
-        'Fiorentina',
-        'Genoa',
-        'Inter',
-        'Juventus',
-        'Lazio',
-        'Lecce',
-        'Milan',
-        'Monza',
-        'Napoli',
-        'Parma',
-        'Roma',
-        'Torino',
-        'Udinese',
-        'Venezia',
-        'Verona'
-    ]
-}
-
-
+        'Atalanta', 'Bologna', 'Cagliari', 'Como', 'Empoli', 'Fiorentina',
+        'Genoa', 'Inter', 'Juventus', 'Lazio', 'Lecce', 'Milan', 'Monza',
+        'Napoli', 'Parma', 'Roma', 'Torino', 'Udinese', 'Venezia', 'Verona'
     ]
 }
 
 # ----------------------------
-# טעינת קבצי CSV
+# טעינת נתונים
 # ----------------------------
 @st.cache_data
 def load_league_data():
-    leagues = {
-        "Premier League": "epl.csv",
-        "La Liga": "laliga.csv",
-        "Serie A": "seriea.csv",
-        "Bundesliga": "bundesliga.csv",
-        "Ligue 1": "ligue1.csv"
+    return {
+        "Premier League": pd.read_csv("epl.csv"),
+        "La Liga": pd.read_csv("laliga.csv"),
+        "Serie A": pd.read_csv("seriea.csv"),
+        "Bundesliga": pd.read_csv("bundesliga.csv"),
+        "Ligue 1": pd.read_csv("ligue1.csv")
     }
-    data = {}
-    for league, file in leagues.items():
-        try:
-            df = pd.read_csv(file)
-            data[league] = df
-        except Exception as e:
-            st.warning(f"לא ניתן לטעון נתונים עבור {league}: {e}")
-    return data
 
 # ----------------------------
-# פונקציית חיזוי בהתבסס על פואסון
+# חיזוי תוצאות
 # ----------------------------
-def predict_match(home, away, df):
-    home_data = df[df['HomeTeam'] == home]
-    away_data = df[df['AwayTeam'] == away]
-    if home_data.empty or away_data.empty:
-        raise ValueError("אין מספיק נתונים לקבוצות שנבחרו.")
-    home_goals_avg = home_data['FTHG'].mean()
-    away_goals_avg = away_data['FTAG'].mean()
-    home_attack = home_goals_avg
-    away_attack = away_goals_avg
+def predict_match(home_team, away_team, df):
+    # חישוב ממוצעי שערים
+    home_avg = df[df['HomeTeam'] == home_team]['FTHG'].mean()
+    away_avg = df[df['AwayTeam'] == away_team]['FTAG'].mean()
+    
+    # חישוב הסתברויות עם התפלגות פואסון
     max_goals = 5
-    matrix = np.zeros((max_goals + 1, max_goals + 1))
-    home_win_prob = draw_prob = away_win_prob = 0
+    home_win = draw = away_win = 0.0
+    
     for i in range(max_goals + 1):
         for j in range(max_goals + 1):
-            p = poisson.pmf(i, home_attack) * poisson.pmf(j, away_attack)
-            matrix[i][j] = p
+            p = poisson.pmf(i, home_avg) * poisson.pmf(j, away_avg)
             if i > j:
-                home_win_prob += p
+                home_win += p
             elif i == j:
-                draw_prob += p
+                draw += p
             else:
-                away_win_prob += p
+                away_win += p
+    
     return {
-        "home_win": round(home_win_prob, 3),
-        "draw": round(draw_prob, 3),
-        "away_win": round(away_win_prob, 3)
+        "home_win": round(home_win, 3),
+        "draw": round(draw, 3),
+        "away_win": round(away_win, 3)
     }
 
 # ----------------------------
-# פונקציית בדיקה לאחור (Backtest)
+# בדיקת ביצועי המודל
 # ----------------------------
 def backtest_strategy(df, confidence=0.6):
-    correct = 0
-    total_bets = 0
-    for _, match in df.iterrows():
+    correct = total = 0
+    for _, row in df.iterrows():
         try:
-            prediction = predict_match(match['HomeTeam'], match['AwayTeam'], df)
-            result = match['FTR']
-            if prediction['home_win'] > confidence:
-                total_bets += 1
-                if result == 'H':
-                    correct += 1
-            elif prediction['away_win'] > confidence:
-                total_bets += 1
-                if result == 'A':
-                    correct += 1
+            pred = predict_match(row['HomeTeam'], row['AwayTeam'], df)
+            actual = row['FTR']
+            
+            if pred['home_win'] > confidence and actual == 'H':
+                correct += 1
+                total += 1
+            elif pred['away_win'] > confidence and actual == 'A':
+                correct += 1
+                total += 1
         except:
             continue
-    if total_bets == 0:
-        return 0, 0, 0
-    accuracy = round(correct / total_bets * 100, 2)
-    return correct, total_bets, accuracy
+    
+    return correct, total, round((correct / total) * 100, 2) if total > 0 else 0
 
 # ----------------------------
 # ממשק משתמש
 # ----------------------------
 data = load_league_data()
-selected_league = st.selectbox("בחר ליגה", list(LEAGUE_TEAMS.keys()))
+selected_league = st.selectbox("בחר ליגה", options=list(LEAGUE_TEAMS.keys()))
 
 if selected_league:
     teams = LEAGUE_TEAMS[selected_league]
-    home_team = st.selectbox("Home Team", teams, key="home")
-    away_team = st.selectbox("Away Team", [team for team in teams if team != home_team], key="away")
-
-    if st.button("חשב חיזוי"):
-        df = data[selected_league]
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        home_team = st.selectbox("קבוצה ביתית", options=teams)
+    
+    with col2:
+        away_team = st.selectbox("קבוצה אורחת", options=[t for t in teams if t != home_team])
+    
+    if st.button("חשב חיזוי ⚡"):
         try:
-            prediction = predict_match(home_team, away_team, df)
-            st.subheader("🔮 תוצאות חיזוי:")
-            st.write(f"ניצחון לקבוצה הביתית **{home_team}**: {prediction['home_win']*100:.1f}%")
-            st.write(f"תיקו: {prediction['draw']*100:.1f}%")
-            st.write(f"ניצחון לקבוצה האורחת **{away_team}**: {prediction['away_win']*100:.1f}%")
+            prediction = predict_match(home_team, away_team, data[selected_league])
+            st.subheader("תוצאות החיזוי:")
+            st.metric(label=f"ניצחון ל־{home_team}", value=f"{prediction['home_win']*100:.1f}%")
+            st.metric(label="תיקו", value=f"{prediction['draw']*100:.1f}%")
+            st.metric(label=f"ניצחון ל־{away_team}", value=f"{prediction['away_win']*100:.1f}%")
         except Exception as e:
-            st.error(f"שגיאה: {e}")
-
-    st.markdown("---")
-    st.subheader("📊 Backtesting על עונת עבר")
-    confidence = st.slider("רף ביטחון להימור (אחוז)", 50, 90, 60)
-    if st.button("הרץ Backtest"):
-        df = data[selected_league]
-        correct, total_bets, acc = backtest_strategy(df, confidence=confidence/100)
-        st.write(f"ניחושים נכונים: {correct} מתוך {total_bets}")
-        st.write(f"אחוז הצלחה: **{acc}%**")
+            st.error(f"שגיאה: {str(e)}")
+    
+    st.divider()
+    st.subheader("בדיקת דיוק המודל")
+    confidence = st.slider("רף ביטחון (%)", 50, 90, 60, help="המודל יחשב רק ניחושים עם הסתברות מעל ערך זה")
+    
+    if st.button("הרץ בדיקה"):
+        correct, total, acc = backtest_strategy(data[selected_league], confidence/100)
+        st.write(f"**ניחושים נכונים:** {correct} מתוך {total}")
+        st.write(f"**דיוק:** {acc}%")
