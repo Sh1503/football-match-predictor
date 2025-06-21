@@ -51,11 +51,13 @@ def load_league_data():
         "Serie A": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/seriea.csv",
         "Bundesliga": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/bundesliga.csv",
         "Ligue 1": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/ligue1.csv",
-        "Israeli Premier League": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/israel_league_list.csv",
-        "UEFA Champions League": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/champions.csv",
-        "UEFA Europa League": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/europa.csv",
-        "UEFA Conference League": "https://raw.githubusercontent.com/Sh1503/football-match-predictor/main/conference.csv"
-    }
+        data_sources = {
+    "UEFA Champions League": "https://raw.githubusercontent.com/football-match-predictor/main/data/champions.csv",
+    "UEFA Europa League": "https://raw.githubusercontent.com/football-match-predictor/main/data/europa.csv",
+    "UEFA Conference League": "https://raw.githubusercontent.com/football-match-predictor/main/data/conference.csv",
+    "Israeli Premier League": "https://raw.githubusercontent.com/football-match-predictor/main/data/israel_league_list.csv"
+}
+
     league_data = {}
     for league, url in data_sources.items():
         df = load_github_data(url)
